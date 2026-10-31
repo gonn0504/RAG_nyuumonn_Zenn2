@@ -1,0 +1,2 @@
+# RAG_nyuumonn_Zenn2
+RAGの入門としてZennの記事を読みながら実践してみる。
