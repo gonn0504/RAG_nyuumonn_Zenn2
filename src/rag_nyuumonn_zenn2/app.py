@@ -13,9 +13,10 @@ CHAT_MODEL = "gpt-5"  # GPT-5系モデル
 TOP_K = 3  # 何件のドキュメントを参照するか
 
 # === OpenAIクライアントの初期化 ===
-load_dotenv()
+load_dotenv()#python-dotenvが.envを読み込み、環境変数として登録。
 try:
-    # .env の OPENAI_API_KEY を読む
+    # .env の OPENAI_API_KEY を読む   api_key=OPENAI_API_KEY=sk-~~~を登録。
+    #通常はclient=OpenAI()
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 except Exception as e:
     st.error(f"OpenAI APIキーの読み込みに失敗しました。.envファイルを確認してください。: {e}")
@@ -33,7 +34,7 @@ def load_documents(data_dir: str = "data"):
         st.error(f"'{data_dir}' ディレクトリが見つかりません。作成してください。")
         return []
 
-    for p in base.glob("*.txt"):
+    for p in base.glob("*.txt"):#dataディレクトリ内の.txtとつくファイルの一覧を１つ１つ見ていく
         try:
             text = p.read_text(encoding="utf-8")
             docs.append(
@@ -43,24 +44,31 @@ def load_documents(data_dir: str = "data"):
                     "text": text,
                 }
             )
+            print(
+            f"p={p}\n"
+            f"id={docs[0]['id']}\n"
+            f"path={docs[0]['path']}\n"
+            f"text文字数={len(docs[0]['text'])}\n"
+            f"text冒頭={docs[0]['text'][:100]!r}\n"
+            )
         except Exception as e:
             st.warning(f"ファイル {p.name} の読み込みに失敗しました: {e}")
             
     return docs
 
 
-# === 埋め込み生成 ===
+# === 埋め込み生成 ===　テキストのベクトルをリストで返す。
 def embed_texts(texts):
     """
     OpenAIの埋め込みAPIを利用して、テキストリストをベクトル化
     """
     try:
-        resp = client.embeddings.create(
+        resp = client.embeddings.create(#レスポンス(resp)にはエンベディング(ベクトル)とさまざまなメタデータが入っている。
             model=EMBEDDING_MODEL,
-            input=texts,
+            input=texts,#テキストの全文が入っている
         )
-        embeddings = [d.embedding for d in resp.data]
-        return np.array(embeddings, dtype="float32")
+        embeddings = [d.embedding for d in resp.data]#エンベディング(数字の羅列(テキストのベクトル))をリストに格納
+        return np.array(embeddings, dtype="float32")#リスト返すよーーーーーーー！
     except Exception as e:
         st.error(f"Embeddingの生成に失敗しました: {e}")
         return None
@@ -78,13 +86,13 @@ def build_index():
         st.stop()
 
     texts = [d["text"] for d in docs]
-    embeddings = embed_texts(texts)
+    embeddings = embed_texts(texts)#テキストのベクトルをリストで返す。
     
     if embeddings is None:
         st.error("Embeddingの生成に失敗したため、インデックスを構築できません。")
         st.stop()
 
-    dim = embeddings.shape[1]
+    dim = embeddings.shape[1]#ここ何してんだー？？？？？？？？？
     index = faiss.IndexFlatL2(dim)  # L2距離（ユークリッド距離）
     index.add(embeddings)
 
